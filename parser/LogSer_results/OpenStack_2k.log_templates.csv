@@ -1,0 +1,44 @@
+EventId,EventTemplate,Occurrences
+7d8b6b51,"While synchronizing instance power states, found <*> instances in the database and <*> instances on the hypervisor.",1
+8c3b6b88,Running instance usage audit for host <*> from 2017-05-16 05:00:00 to 2017-05-16 06:00:00. <*> instances.,1
+45d153d6,Successfully synced instances from host '<*>'.,2
+2c2ced08,The instance sync for host '<*>' did not match. Re-created its InstanceList.,5
+0cf1e99c,Final resource view: name=<*> phys_ram=64172MB used_ram=512MB phys_disk=15GB used_disk=0GB total_vcpus=16 used_vcpus=0 pci_stats=[],6
+baa7feda,Final resource view: name=<*> phys_ram=64172MB used_ram=2560MB phys_disk=15GB used_disk=20GB total_vcpus=16 used_vcpus=1 pci_stats=[],9
+b7d6364d,Base or swap file too young to remove: <*>,9
+5cc866c8,Compute_service record updated for <*>:<*>,15
+3f80eae5,"Total usable vcpus: 16, total allocated vcpus: <*>",15
+61a90d8b,Auditing locally available compute resources for node <*>,15
+66acd71e,HTTP exception thrown: No instances found for any event,21
+4a55d9e6,"[instance: (INST)] Attempting claim: memory <*> MB, disk <*> GB, vcpus <*> CPU",21
+66a8ab07,"[instance: (INST)] Total memory: <*> MB, used: <*> MB",21
+1a835959,"[instance: (INST)] memory limit: <*> MB, free: <*> MB",21
+8087023c,Removing base or swap file: <*>,21
+6ddc5674,"[instance: (INST)] Total vcpu: <*> VCPU, used: <*> VCPU",21
+34020e34,"[instance: (INST)] vcpu limit not specified, defaulting to unlimited",21
+ed67a351,[instance: (INST)] Claim successful,21
+b4caf0ff,[instance: (INST)] Creating image,21
+22e05efd,[instance: (INST)] VM Stopped ( Lifecycle Event ),21
+f1079f70,"[instance: (INST)] Total disk: <*> GB, used: <*> GB",21
+fd041277,"[instance: (INST)] disk limit not specified, defaulting to unlimited",21
+3548ce8e,[instance: (INST)] Deletion of <*> complete,21
+8640c9ce,[instance: (INST)] Deleting instance files <*>,21
+3fdc585a,[instance: (INST)] Took <*> seconds to deallocate network for instance.,21
+ed39525c,[instance: (INST)] Instance destroyed successfully.,22
+fecfcb69,[instance: (INST)] Terminating instance,22
+639a5d31,"<*> ""DELETE <*> HTTP/1.1"" status: <*> len: <*> time: <*>",22
+4a92605c,[instance: (INST)] Took <*> seconds to build instance.,22
+c5ca155a,[instance: (INST)] Instance spawned successfully.,22
+e2378d5b,[instance: (INST)] VM Started ( Lifecycle Event ),22
+71d427b0,Creating event network-vif-plugged:(INST) for instance (INST),22
+224a1cdd,[instance: (INST)] VM Paused ( Lifecycle Event ),22
+51387d9b,Unknown base file: <*>,30
+3964d785,Removable base files: <*>,30
+81c92340,[instance: (INST)] Took <*> seconds to <*> the instance on the hypervisor.,43
+a1fe1734,[instance: (INST)] During sync_power_state the instance has a pending task ( spawning ). Skip.,43
+94971567,[instance: (INST)] VM Resumed ( Lifecycle Event ),44
+b6030ec8,"<*> ""POST <*> HTTP/1.1"" status: <*> len: <*> time: <*>",64
+58251d4d,"image (INST) at ( <*> ): in use: on this node <*> local, <*> on other nodes sharing this instance storage",82
+b36febb0,Active base files: <*>,82
+6b871aa4,image (INST) at ( <*> ): checking,82
+2311ba9a,"<*> ""GET <*> HTTP/1.1"" status: <*> len: <*> time: <*>",931

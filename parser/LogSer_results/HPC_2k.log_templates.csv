@@ -1,0 +1,48 @@
+EventId,EventTemplate,Occurrences
+fc3695d9,risBoot (command 1903) Error : Timed out while waiting for SRM prompt : <ABORT code completed>,1
+f71ce374,inconsistent nodesets node-32 <*> <ok> node-34 <*> <ok> node-33 <*> <ok> node-35 <*> <ok>,1
+252f035f,not-responding,1
+07d3341e,inconsistent nodesets node-1 <*> <ok> node-2 <*> <ok> node-7 <*> <ok> node-4 <*> <ok> node-6 <*> <ok> node-5 <*> <ok> node-3 <*> <ok> node-14 <*> <ok> node-13 <*> <ok> node-12 <*> <ok> node-10 <*> <ok> node-16 <*> <ok> node-15 <*> <ok>,1
+1ee85f6c,starting,1
+3b38bec1,closing,1
+e13d082a,power/control problem,1
+5452c51c,Command has been aborted,1
+ccb40d5c,inconsistent nodesets node-31 0x1fffffffe <ok> node-0 <*> <ok> node-1 <*> <ok> node-2 <*> <ok> node-30 <*> <ok>,1
+1a56db26,ServerFileSystem : An ServerFileSystem domain panic has occurred on storage442,1
+c999877f,inconsistent nodesets node-160 <*> <ok> node-161 <*> <ok> node-162 <*> <ok> node-163 <*> <ok>,1
+2706b4fa,boot (command 2092) Error : HALT asserted\ cannot continue,1
+87766bbc,Targeting domains : node-D7 and nodes : node-[224\ 228\ 232],1
+e5e34e3d,risBoot (command 1903),1
+3cd82c3b,Targeting domains : node-D[0\ 5] and nodes : node-[27\ 191],1
+bd82b62d,Failed subcommands <*>,1
+3b219fff,Temperature (41C) exceeds warning threshold,2
+b6d38bd5,clusterAddMember (command <*>,2
+e8e28ff0,NIFF : node <*> detected a failed network connection on network 5.5.224.0 via interface alt0,2
+76727c51,bootGenvmunix (command <*>,2
+ffd891af,halt (command <*>,3
+e13bbca9,Link error on broadcast tree <*> : <*> : <*> : <*>,4
+d150ad7a,psu failure\ ambient = <*>,5
+c76a5e84,active,5
+4270be61,Targeting domains : <*> and nodes : <*> <*>,7
+db5aa7f9,Link in reset,9
+b4e25afc,Command has completed successfully,10
+5a3d249d,Component State Change : Component <*> <*> is in the unavailable state ((HWID)),12
+d62b3142,ServerFileSystem : ServerFileSystem domain <*> is full,12
+641961b9,Link ok,13
+ec4e03ec,Link error,13
+61326117,blocked,15
+7e85bcb6,critical,20
+e6dfd4e8,ClusterFileSystem : There is no server for ServerFileSystem domain <*>,32
+7327d207,ClusterFileSystem : ServerFileSystem domain <*> is no longer served by node <*>,36
+551adf73,link errors remain current,56
+b02b9741,not responding,60
+28889bc4,wait (command <*>,66
+8d336518,boot (command <*>,67
+2d025359,Fan speeds ( <*> <*> <*> <*> <*> <*> <*> ),90
+7d304af5,NIFF : node <*> has detected an available network connection on network <*> via interface <*>,91
+8cfafe98,configured out,91
+75101dcd,running,162
+7b83d3f0,warning,205
+fea08751,normal,206
+45f06f9c,ambient = <*>,292
+9050ee25,Linkerror event interval expired,394
