@@ -186,7 +186,7 @@ if __name__ == "__main__":
     # Parser #
     #########
 
-    parse_log(data_dir, output_dir, log_file, 'drain')
+    # parse_log(data_dir, output_dir, log_file, 'drain')
     mapping()
 
     #########

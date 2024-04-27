@@ -17,7 +17,7 @@ pip install -r ./environment/requirements.txt
 Our models are implemented on logPAI loghub including [HDFS](https://github.com/logpai/loghub/tree/master/HDFS), [BGL](https://github.com/logpai/loghub/tree/master/BGL), and [thunderbird](https://github.com/logpai/loghub/tree/master/Thunderbird) datasets
 
 ### HDFS example
-First: initialing environment and downloading HDFS.log file
+First: initialing environment
 ```shell script
 cd HDFS
 
@@ -25,8 +25,11 @@ sh init.sh
 ```
 
 Second: processing data
+input the parsed CSV file ***HDFS.log_structured.csv*** and ***HDFS.log_templates.csv***
+put these files into path ***.\output\hdfs***
+
 ```shell script
-# log parsing and sampling data
+# sampling data
 python data_process.py
 # process parameter
 python param_process.py
