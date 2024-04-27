@@ -25,6 +25,7 @@ sh init.sh
 ```
 
 Second: processing data
+
 input the parsed CSV file ***HDFS.log_structured.csv*** and ***HDFS.log_templates.csv***
 put these files into path ***.\output\hdfs***
 
