@@ -12,7 +12,8 @@ from datetime import datetime
 
 benchmark_settings = {
     'HDFS': {
-        'log_file': 'HDFS/HDFS_2k.log',
+        #'log_file': 'HDFS/HDFS_2k.log',
+        'log_file': 'HDFS.log',
         'log_format': '<Date> <Time> <Pid> <Level> <Component>: <Content>',
         'regex': [r'(\d+\.){3}\d+(:\d+)?'],
         'st': 0.7,
@@ -249,7 +250,8 @@ benchmark_settings = {
         },
 }
 
-input_dir = 'PATH TO YOUR DATASETS'
+#input_dir = 'PATH TO YOUR DATASETS'
+input_dir = os.path.join('..', '..')
 output_dir = 'LogSer_results'
 bechmark_result = []
 if __name__ == '__main__':
@@ -268,10 +270,15 @@ if __name__ == '__main__':
                          jt=benchmark_settings[dataset]['tau'], 
                          postProcessFunc = Jaccard, 
                          replaceD=benchmark_settings[dataset]['replaceD'],
-                         keep_para=False)
+                         #keep_para=False)
+                         keep_para=True)
         start_time = datetime.now()
         parser.parse(os.path.basename(benchmark_settings[dataset]['log_file']))
         parse_time = (datetime.now() - start_time).total_seconds()
+        # hacker way - start
+        print('')
+        continue
+        # hacker way - end
         Precision, Recall, F1_measure, accuracy = evaluator.evaluate(
                     groundtruth=os.path.join(input_dir, benchmark_settings[dataset]['log_file'] + '_structured_corrected.csv'),
                     parsedresult=os.path.join(output_dir, dataset + '_2k.log' + '_structured.csv')
@@ -279,7 +286,10 @@ if __name__ == '__main__':
         QL, LL = LOSS_evaluate.loss(pd.read_csv(os.path.join(output_dir, dataset + '_2k.log' + '_templates.csv')))
         bechmark_result.append([dataset, Precision, Recall, F1_measure, accuracy, parse_time, QL, LL, (QL+LL)])
         print('')
-
+    
+    # debug - start
+    return
+    # debug - end
     print('\n=== Overall evaluation results ===')
     df_result = pd.DataFrame(bechmark_result, columns=['Dataset', 'Precision', 'Recall', 'F1_measure', 'Accuracy', 'Time', 'QL', 'LL', 'LOSS'])
     df_result.set_index('Dataset', inplace=True)

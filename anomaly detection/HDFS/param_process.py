@@ -6,7 +6,8 @@ import json
 from collections import defaultdict
 import os
 
-label_dir  = os.path.expanduser('~/.dataset/hdfs/')
+#label_dir  = os.path.expanduser('~/.dataset/hdfs/')
+label_dir  = os.path.join('..', '..', '..', 'preprocessed')
 output_dir = '../output/hdfs/'  # The output directory of parsing results
 log_file   = "HDFS.log"  # The input log file name
 

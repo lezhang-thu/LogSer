@@ -8,7 +8,6 @@ import csv
 import numpy as np
 import torch
 from torch import nn
-from d2l import torch as d2l
 from collections import defaultdict
 from ekphrasis.classes.segmenter import Segmenter
 import os
@@ -42,7 +41,7 @@ class ParamTransformer:
     def model_embedding(self):
         structured_df = pd.read_csv(self.path + self.logName + "_structured.csv")
         template_df = pd.read_csv(self.path + self.logName + "_templates.csv")
-        label_df = pd.read_csv(self.labelpath+"anomaly_label.csv")
+        label_df = pd.read_csv(os.path.join(self.labelpath, "anomaly_label.csv"))
         dict_label = defaultdict(bool)
         for idx, row in label_df.iterrows():
             dict_label[row['BlockId']] = row['Label'] == 'Normal'
