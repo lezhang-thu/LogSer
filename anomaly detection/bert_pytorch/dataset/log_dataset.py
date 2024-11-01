@@ -374,7 +374,7 @@ class LogDataset(Dataset):
 
         output["bert_input"] = torch.tensor(output["bert_input"], dtype=torch.long)
         output["bert_label"] = torch.tensor(output["bert_label"], dtype=torch.long)
-        output["time_input"] = torch.tensor(output["time_input"], dtype=torch.float)
+        output["time_input"] = torch.tensor(np.array(output["time_input"]), dtype=torch.float)
         output["time_label"] = torch.tensor(output["time_label"], dtype=torch.float)
         output["param_embedding"] = output["param_embedding"][1:]
         output["param_embedding"] = torch.tensor(output["param_embedding"], dtype=torch.float32)

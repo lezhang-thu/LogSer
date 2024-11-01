@@ -79,16 +79,21 @@ def generate_train_valid(data_path, window_size=20, adaptive_window=True,
     time_seq_pairs = []
     session = 0
     for line in tqdm(data_iter):
+    #for line in data_iter:
         if session >= num_session:
             break
         session += 1
 
         logkeys, times = fixed_window(line, window_size, adaptive_window, seq_len, min_len)
+        #print('#' * 20)
+        #print('logkeys: {}'.format(logkeys))
+        #print('len(logkeys[0]): {}'.format(len(logkeys[0])))
+        #exit(0)
         logkey_seq_pairs += logkeys
         time_seq_pairs += times
 
-    logkey_seq_pairs = np.array(logkey_seq_pairs)
-    time_seq_pairs = np.array(time_seq_pairs)
+    logkey_seq_pairs = np.asarray(logkey_seq_pairs, dtype="object")
+    time_seq_pairs = np.asarray(time_seq_pairs, dtype="object")
 
     logkey_trainset, logkey_validset, time_trainset, time_validset = train_test_split(logkey_seq_pairs,
                                                                                       time_seq_pairs,
