@@ -122,9 +122,14 @@ class WordVocab(Vocab):
         counter = Counter()
         for line in tqdm.tqdm(texts):
             if isinstance(line, list):
+                #print('run here')
+                #exit(0)
                 words = line
             else:
                 words = line.replace("\n", "").replace("\t", "").split()
+            # debug
+            #print(words)
+            #exit(0)
 
             for word in words:
                 counter[word] += 1

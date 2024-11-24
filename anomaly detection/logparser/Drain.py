@@ -200,6 +200,9 @@ class LogParser:
         df_events = []
         for logClust in logClustL:
             template_str = ' '.join(logClust.logTemplate)
+            # debug - start
+            template_str = re.sub(r'(<\*>)+', r'<*>', template_str)
+            # debug - end
             occurrence = len(logClust.logIDL)
             template_id = hashlib.md5(template_str.encode('utf-8')).hexdigest()[0:8]
             for logID in logClust.logIDL:

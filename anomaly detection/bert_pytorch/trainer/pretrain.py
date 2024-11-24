@@ -10,6 +10,7 @@ import tqdm
 import numpy as np
 import pandas as pd
 
+
 class BERTTrainer:
     """
     BERTTrainer make the pretrained BERT model with two LM training method.
@@ -21,11 +22,20 @@ class BERTTrainer:
 
     """
 
-    def __init__(self, bert: BERT, vocab_size: int,
-                 train_dataloader: DataLoader, valid_dataloader: DataLoader = None,
-                 lr: float = 1e-4, betas=(0.9, 0.999), weight_decay: float = 0.01, warmup_steps=10000,
-                 with_cuda: bool = True, cuda_devices=None, log_freq: int = 10, is_logkey=True, is_time=False, is_param=True, is_increment=False, 
-                 model_path="../output/tbird/bert/best_bert.pth", hypersphere_loss=False):
+    def __init__(self,
+                 bert: BERT,
+                 vocab_size: int,
+                 train_dataloader: DataLoader,
+                 valid_dataloader: DataLoader = None,
+                 lr: float = 1e-4,
+                 betas=(0.9, 0.999),
+                 weight_decay: float = 0.01,
+                 warmup_steps=10000,
+                 with_cuda: bool = True,
+                 cuda_devices=None,
+                 log_freq: int = 10,
+                 model_path="../output/tbird/bert/best_bert.pth",
+                 hypersphere_loss=False):
         """
         :param bert: BERT model which you want to train
         :param vocab_size: total word vocab size
@@ -46,10 +56,6 @@ class BERTTrainer:
         self.bert = bert
         # Initialize the BERT Language Model, with BERT model
         self.model = BERTLog(bert, vocab_size).to(self.device)
-        if (is_increment):
-            print("Loading model for increment train")
-            self.model = torch.load(model_path).to(self.device)
-            self.model.train()
 
         # Distributed GPU training if CUDA can detect more than 1 GPU
         # if with_cuda and torch.cuda.device_count() > 1:
@@ -68,7 +74,6 @@ class BERTTrainer:
         self.optim_schedule = None
         self.init_optimizer()
 
-
         # Using Negative Log Likelihood Loss function for predicting the masked_token
         self.criterion = nn.NLLLoss(ignore_index=0)
         self.time_criterion = nn.MSELoss()
@@ -85,22 +90,26 @@ class BERTTrainer:
         self.log_freq = log_freq
 
         self.log = {
-            "train": {key: []
-                      for key in ["epoch", "lr", "time", "loss"]},
-            "valid": {key: []
-                      for key in ["epoch", "lr", "time", "loss"]}
+            "train": {
+                key: [] for key in ["epoch", "lr", "time", "loss"]
+            },
+            "valid": {
+                key: [] for key in ["epoch", "lr", "time", "loss"]
+            }
         }
 
-        print("Total Parameters:", sum([p.nelement() for p in self.model.parameters()]))
-
-        self.is_logkey = is_logkey
-        self.is_time = is_time
-        self.is_param = is_param
+        print("Total Parameters:",
+              sum([p.nelement() for p in self.model.parameters()]))
 
     def init_optimizer(self):
         # Setting the Adam optimizer with hyper-param
-        self.optim = Adam(self.model.parameters(), lr=self.lr, betas=self.betas, weight_decay=self.weight_decay)
-        self.optim_schedule = ScheduledOptim(self.optim, self.bert.hidden, n_warmup_steps=self.warmup_steps)
+        self.optim = Adam(self.model.parameters(),
+                          lr=self.lr,
+                          betas=self.betas,
+                          weight_decay=self.weight_decay)
+        self.optim_schedule = ScheduledOptim(self.optim,
+                                             self.bert.hidden,
+                                             n_warmup_steps=self.warmup_steps)
 
     def train(self, epoch):
         return self.iteration(epoch, self.train_data, start_train=True)
@@ -138,14 +147,12 @@ class BERTTrainer:
         for i, data in data_iter:
             data = {key: value.to(self.device) for key, value in data.items()}
 
-            if self.is_param:
-                result = self.model.forward(data["bert_input"], data["time_input"], data["param_embedding"])
-            else:
-                result = self.model.forward(data["bert_input"], data["time_input"])
-            mask_lm_output, mask_time_output = result["logkey_output"], result["time_output"]
+            result = self.model(data["bert_input"], data["param_embedding"])
+            mask_lm_output = result["logkey_output"]
 
             # 2-2. NLLLoss of predicting masked token word ignore_index = 0 to ignore unmasked tokens
-            mask_loss = torch.tensor(0) if not self.is_logkey else self.criterion(mask_lm_output.transpose(1, 2), data["bert_label"])
+            mask_loss = self.criterion(mask_lm_output.transpose(1, 2),
+                                       data["bert_label"])
             total_logkey_loss += mask_loss.item()
 
             # 2-3. Adding next_loss and mask_loss : 3.4 Pre-training Procedure
@@ -155,10 +162,13 @@ class BERTTrainer:
             if self.hypersphere_loss:
                 # version 1.0
                 # hyper_loss = self.hyper_criterion(result["cls_fnn_output"].squeeze(), self.hyper_center.expand(data["bert_input"].shape[0],-1))
-                hyper_loss = self.hyper_criterion(result["cls_output"].squeeze(), self.hyper_center.expand(data["bert_input"].shape[0], -1))
+                hyper_loss = self.hyper_criterion(
+                    result["cls_output"].squeeze(),
+                    self.hyper_center.expand(data["bert_input"].shape[0], -1))
 
                 # version 2.0 https://github.com/lukasruff/Deep-SVDD-PyTorch/blob/master/src/optim/deepSVDD_trainer.py
-                dist = torch.sum((result["cls_output"] - self.hyper_center) ** 2, dim=1)
+                dist = torch.sum((result["cls_output"] - self.hyper_center)**2,
+                                 dim=1)
                 total_dist += dist.cpu().tolist()
 
                 # if self.objective == 'soft-boundary':
@@ -170,7 +180,7 @@ class BERTTrainer:
                 # # add radius and center to training
                 # self.radius = self.get_radius(dist, self.nu)
                 # self.hyper_center = torch.mean(result["cls_output"], dim=0)
-                
+
                 total_hyper_loss += hyper_loss.item()
 
                 # with deepsvdd loss
@@ -187,15 +197,19 @@ class BERTTrainer:
         avg_loss = total_loss / totol_length
         self.log[str_code]['epoch'].append(epoch)
         self.log[str_code]['loss'].append(avg_loss)
-        print("Epoch: {} | phase: {}, loss={}".format(epoch, str_code, avg_loss))
-        print(f"logkey loss: {total_logkey_loss/totol_length}, hyper loss: {total_hyper_loss/totol_length}\n")
+        print("Epoch: {} | phase: {}, loss={}".format(epoch, str_code,
+                                                      avg_loss))
+        print(
+            f"logkey loss: {total_logkey_loss/totol_length}, hyper loss: {total_hyper_loss/totol_length}\n"
+        )
 
         return avg_loss, total_dist
 
     def save_log(self, save_dir, surfix_log):
         try:
             for key, values in self.log.items():
-                pd.DataFrame(values).to_csv(save_dir + key + f"_{surfix_log}.csv",
+                pd.DataFrame(values).to_csv(save_dir + key +
+                                            f"_{surfix_log}.csv",
                                             index=False)
             print("Log saved")
         except:
@@ -218,5 +232,3 @@ class BERTTrainer:
     def get_radius(dist: list, nu: float):
         """Optimally solve for radius R via the (1-nu)-quantile of distances."""
         return np.quantile(np.sqrt(dist), 1 - nu)
-
-

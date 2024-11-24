@@ -21,6 +21,7 @@ log_file = "HDFS.log"  # The input log file name
 log_structured_file = output_dir + log_file + "_structured.csv"
 log_templates_file = output_dir + log_file + "_templates.csv"
 log_sequence_file = output_dir + "hdfs_sequence.csv"
+idx_log_sequence = os.path.join(output_dir, "idx_sequence.csv")
 
 
 def mapping():
@@ -71,10 +72,10 @@ def parser(input_dir, output_dir, log_file, log_format, type='drain'):
         parser.parse(log_file)
 
 
-def hdfs_sampling(log_file, window='session'):
+def hdfs_sampling(file_name, window='session'):
     assert window == 'session', "Only window=session is supported for HDFS dataset."
-    print("Loading", log_file)
-    df = pd.read_csv(log_file,
+    print("Loading", file_name)
+    df = pd.read_csv(file_name,
                      engine='c',
                      na_filter=False,
                      memory_map=True,
@@ -83,11 +84,12 @@ def hdfs_sampling(log_file, window='session'):
                          "Time": object
                      })
 
-    with open(output_dir + "hdfs_log_templates.json", "r") as f:
+    with open(os.path.join(output_dir, "hdfs_log_templates.json"), "r") as f:
         event_num = json.load(f)
     df["EventId"] = df["EventId"].apply(lambda x: event_num.get(x, -1))
 
     data_dict = defaultdict(list)  #preserve insertion order of items
+    idx_seq = defaultdict(list)
     for idx, row in tqdm(df.iterrows()):
         blkId_list = re.findall(r'(blk_-?\d+)', row['Content'])
         # debug
@@ -97,31 +99,36 @@ def hdfs_sampling(log_file, window='session'):
         blkId_set = set(blkId_list)
         for blk_Id in blkId_set:
             data_dict[blk_Id].append(row["EventId"])
+            idx_seq[blk_Id].append(idx)
 
     # debug
     #exit(0)
     data_df = pd.DataFrame(list(data_dict.items()),
                            columns=['BlockId', 'EventSequence'])
     data_df.to_csv(log_sequence_file, index=None)
+    idx_seq = pd.DataFrame(list(idx_seq.items()),
+                           columns=['BlockId', 'LogSequence'])
+    idx_seq.to_csv(idx_log_sequence, index=False)
     print("hdfs sampling done")
 
 
-def generate_train_test(hdfs_sequence_file, n=None, ratio=0.3):
+def generate_train_test(file_name, n=None, ratio=0.3, col=None):
     blk_label_dict = {}
-    blk_label_file = os.path.join(input_dir, 'preprocessed', "anomaly_label.csv")
+    blk_label_file = os.path.join(input_dir, 'preprocessed',
+                                  "anomaly_label.csv")
     blk_df = pd.read_csv(blk_label_file)
     for _, row in tqdm(blk_df.iterrows()):
         blk_label_dict[row["BlockId"]] = 1 if row["Label"] == "Anomaly" else 0
 
-    seq = pd.read_csv(hdfs_sequence_file)
+    seq = pd.read_csv(file_name)
     seq["Label"] = seq["BlockId"].apply(lambda x: blk_label_dict.get(
         x))  #add label to the sequence of each blockid
 
-    normal_seq = seq[seq["Label"] == 0]["EventSequence"]
+    normal_seq = seq[seq["Label"] == 0][col]
     normal_seq = normal_seq.sample(frac=1,
                                    random_state=20)  # shuffle normal data
 
-    abnormal_seq = seq[seq["Label"] == 1]["EventSequence"]
+    abnormal_seq = seq[seq["Label"] == 1][col]
     normal_len, abnormal_len = len(normal_seq), len(abnormal_seq)
     train_len = n if n else int(normal_len * ratio)
     print("normal size {0}, abnormal size {1}, training size {2}".format(
@@ -131,9 +138,9 @@ def generate_train_test(hdfs_sequence_file, n=None, ratio=0.3):
     test_normal = normal_seq.iloc[train_len:]
     test_abnormal = abnormal_seq
 
-    df_to_file(train, output_dir + "train")
-    df_to_file(test_normal, output_dir + "test_normal")
-    df_to_file(test_abnormal, output_dir + "test_abnormal")
+    df_to_file(train, output_dir + "train-{}".format(col))
+    df_to_file(test_normal, output_dir + "test_normal-{}".format(col))
+    df_to_file(test_abnormal, output_dir + "test_abnormal-{}".format(col))
     print("generate train test data done")
 
 
@@ -152,4 +159,6 @@ if __name__ == "__main__":
     # debug - temporary
     mapping()
     hdfs_sampling(log_structured_file)
-    generate_train_test(log_sequence_file, ratio=0.8)
+    for x, col in zip([log_sequence_file, idx_log_sequence],
+                      ["EventSequence", 'LogSequence']):
+        generate_train_test(x, ratio=0.8, col=col)
