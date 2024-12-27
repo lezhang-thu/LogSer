@@ -214,9 +214,9 @@ class LogParser:
         df_events = []
         for logClust in logClustL:
             template_str = ' '.join(logClust.logTemplate)
-            # debug - start
             template_str = re.sub(r'(<\*>)+', r'<*>', template_str)
-            # debug - end
+            template_str = re.sub(r'(<\*>)(\s+<\*>)+', r'\1', template_str)
+
             occurrence = len(logClust.logIDL)
             template_id = hashlib.md5(
                 template_str.encode('utf-8')).hexdigest()[0:8]
@@ -234,9 +234,11 @@ class LogParser:
         if self.keep_para:
             self.df_log["ParameterList"] = self.df_log.apply(
                 self.get_parameter_list, axis=1)
-        self.df_log.to_csv(os.path.join(self.savePath,
-                                        self.logName + '_structured.csv'),
-                           index=False)
+        import pickle
+        with open(
+                os.path.join(self.savePath, self.logName + '_structured.pkl'),
+                'wb') as f:
+            pickle.dump(self.df_log, f)
 
         occ_dict = dict(self.df_log['EventTemplate'].value_counts())
         df_event = pd.DataFrame()
@@ -244,10 +246,9 @@ class LogParser:
         df_event['EventId'] = df_event['EventTemplate'].map(
             lambda x: hashlib.md5(x.encode('utf-8')).hexdigest()[0:8])
         df_event['Occurrences'] = df_event['EventTemplate'].map(occ_dict)
-        df_event.to_csv(os.path.join(self.savePath,
-                                     self.logName + '_templates.csv'),
-                        index=False,
-                        columns=["EventId", "EventTemplate", "Occurrences"])
+        with open(os.path.join(self.savePath, self.logName + '_templates.pkl'),
+                  'wb') as f:
+            pickle.dump(df_event, f)
 
     def printTree(self, node, dep):
         pStr = ''
@@ -279,6 +280,8 @@ class LogParser:
 
         count = 0
         for idx, line in self.df_log.iterrows():
+            # debug
+            #break
             logID = line['LineId']
             logmessageL = self.preprocess(line['Content']).strip().split()
             # logmessageL = filter(lambda x: x != '', re.split('[\s=:,]', self.preprocess(line['Content'])))
@@ -307,7 +310,6 @@ class LogParser:
 
         if not os.path.exists(self.savePath):
             os.makedirs(self.savePath)
-
         self.outputResult(logCluL)
 
         print('Parsing done. [Time taken: {!s}]'.format(datetime.now() -
@@ -343,6 +345,35 @@ class LogParser:
         logdf['LineId'] = [i + 1 for i in range(linecount)]
         return logdf
 
+    def extract_values_without_re(self, content, template):
+        result = []
+        parts = template.split('<*>')  # Split the template into fixed parts
+        start_idx = 0  # Pointer for the current position in the content string
+
+        for i in range(len(parts)):
+            part = parts[i]
+            if part:  # If the current part is not an empty string
+                # Find where this part appears in the content
+                start_idx = content.find(part, start_idx)
+                if start_idx == -1:
+                    return []  # If a part isn't found, return an empty list
+                start_idx += len(part)  # Move the pointer past this part
+
+            # If there's another part (and thus a <*> between parts)
+            if i < len(parts) - 1:
+                next_part = parts[i + 1]
+                # Find where the next fixed part starts (or end of string for last <*>)
+                end_idx = content.find(
+                    next_part, start_idx) if next_part else len(content)
+                if end_idx == -1:
+                    return [
+                    ]  # If the next part isn't found, return an empty list
+                # Add the captured part between this part and the next
+                result.append(content[start_idx:end_idx])
+                start_idx = end_idx  # Update the pointer to the end of the match
+
+        return result
+
     def generate_logformat_regex(self, logformat):
         """ Function to generate regular expression to split log messages
         """
@@ -361,18 +392,7 @@ class LogParser:
         return headers, regex
 
     def get_parameter_list(self, row):
-        template_regex = re.sub(r"<.{1,5}>", "<*>", row["EventTemplate"])
-        if "<*>" not in template_regex: return []
-        template_regex = re.sub(r'([^A-Za-z0-9])', r'\\\1', template_regex)
-        template_regex = re.sub(r'\\ +', r'\\s+', template_regex)
-        template_regex = "^" + template_regex.replace("\<\*\>", "(.*?)") + "$"
-        row = re.sub(r'(blk_-?\d+)', "blk_", row["Content"])
-        parameter_list = re.findall(template_regex, row)
-        # parameter_list = re.findall(template_regex, row["Content"])
-        parameter_list = parameter_list[0] if parameter_list else ()
-        parameter_list = list(parameter_list) if isinstance(
-            parameter_list, tuple) else [parameter_list]
-        parameter_str = ""
-        for i in parameter_list:
-            parameter_str = parameter_str + i + " "
-        return parameter_str
+        if "<*>" not in row["EventTemplate"]:
+            return []
+        return self.extract_values_without_re(row["Content"],
+                                              row["EventTemplate"])
