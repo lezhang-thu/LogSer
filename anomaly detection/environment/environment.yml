@@ -1,6 +1,0 @@
-name: logser
-dependencies:
-  - python=3.9.7
-  - pip=22.0.4
-  - pip:
-    - -r requirements.txt
