@@ -1,11 +1,11 @@
 import sys
+
 sys.path.append("../")
 # sys.path.append("../../")
 #
 # import os
 # dirname = os.path.dirname(__file__)
 # filename = os.path.join(dirname, '../deeplog')
-
 
 import argparse
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
@@ -21,17 +21,18 @@ options["output_dir"] = "../output/bgl/"
 options["model_dir"] = options["output_dir"] + "bert/"
 options["increment_model_dir"] = options["output_dir"] + "increment_bert/"
 options["model_path"] = options["model_dir"] + "best_bert.pth"
-options["train_vocab"] = options['output_dir'] + 'train'
+options["train_vocab"] = options['output_dir'] + "train-EventSequence"
 options["vocab_path"] = options["output_dir"] + "vocab.pkl"
-options["increment_model_path"] = options["output_dir"] + "increment_bert/" + "best_bert.pth"
+options["increment_model_path"] = options[
+    "output_dir"] + "increment_bert/" + "best_bert.pth"
 
 options["window_size"] = 128
 options["adaptive_window"] = True
 options["seq_len"] = 512
-options["max_len"] = 512 # for position embedding
+options["max_len"] = 512  # for position embedding
 options["min_len"] = 10
 
-options["mask_ratio"] = 0.3 # train 0.3 predict 0.7 
+options["mask_ratio"] = 0.3  # train 0.3 predict 0.7
 
 options["train_ratio"] = 1
 options["valid_ratio"] = 0.1
@@ -41,17 +42,17 @@ options["test_ratio"] = 1
 options["is_logkey"] = True
 options["is_time"] = False
 options["is_param"] = True
-options["is_increment"] = False # 是否增量
+options["is_increment"] = False  # 是否增量
 options["logname"] = 'BGL.log'
 
 options["hypersphere_loss"] = True
 options["hypersphere_loss_test"] = True
 
-options["scale"] = None # MinMaxScaler()
+options["scale"] = None  # MinMaxScaler()
 options["scale_path"] = options["model_dir"] + "scale.pkl"
 
 # model
-options["hidden"] = 256 # embedding size
+options["hidden"] = 256  # embedding size
 options["layers"] = 4
 options["attn_heads"] = 4
 
@@ -66,7 +67,7 @@ options["lr"] = 1e-3
 options["adam_beta1"] = 0.9
 options["adam_beta2"] = 0.999
 options["adam_weight_decay"] = 0.00
-options["with_cuda"]= True
+options["with_cuda"] = True
 options["cuda_devices"] = None
 options["log_freq"] = None
 
@@ -76,6 +77,10 @@ options["gaussian_mean"] = 0
 options["gaussian_std"] = 1
 
 seed_everything(seed=1234)
+
+if not os.path.exists(options['model_dir']):
+    os.makedirs(options['model_dir'], exist_ok=True)
+
 # print("device", options["device"])
 # print("features logkey:{} time: {}".format(options["is_logkey"], options["is_time"]))
 # print("mask ratio", options["mask_ratio"])
@@ -116,8 +121,3 @@ if __name__ == "__main__":
         vocab = WordVocab(logs)
         print("vocab_size", len(vocab))
         vocab.save_vocab(options["vocab_path"])
-
-
-
-
-
