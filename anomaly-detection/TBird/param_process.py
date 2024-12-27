@@ -2,7 +2,7 @@ import sys
 
 sys.path.append('../')
 
-from logparser import tbird_param_transformer
+from logparser import bgl_param_transformer
 import json
 from collections import defaultdict
 import os
@@ -13,7 +13,7 @@ log_file = "Thunderbird_20M.log"  # The input log file name
 
 
 def param_embedding():
-    model_trans = tbird_param_transformer.ParamTransformer(
+    model_trans = bgl_param_transformer.ParamTransformer(
         logName=log_file,
         label_dir=label_dir,
         indir=output_dir,

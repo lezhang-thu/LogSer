@@ -6,8 +6,9 @@ import os
 from collections import defaultdict
 import pandas as pd
 import numpy as np
-from logparser import Spell, Drain
+from logparser import Spell, Drain_BGL
 from tqdm import tqdm
+import pickle
 import json
 
 tqdm.pandas()
@@ -116,14 +117,14 @@ def parse_log(input_dir, output_dir, log_file, parser_type):
         depth = 3  # Depth of all leaf nodes
 
         # Drain is modified
-        parser = Drain.LogParser(log_format,
-                                 indir=input_dir,
-                                 outdir=output_dir,
-                                 depth=depth,
-                                 st=st,
-                                 rex=regex,
-                                 keep_para=keep_para,
-                                 maxChild=1000)
+        parser = Drain_BGL.LogParser(log_format,
+                                     indir=input_dir,
+                                     outdir=output_dir,
+                                     depth=depth,
+                                     st=st,
+                                     rex=regex,
+                                     keep_para=keep_para,
+                                     maxChild=1000)
         parser.parse(log_file)
 
     elif parser_type == "spell":
@@ -172,14 +173,12 @@ log_templates_file = output_dir + log_file + "_templates.csv"
 
 
 def mapping():
-    log_temp = pd.read_csv(log_templates_file)
-    log_temp.sort_values(by=["Occurrences"], ascending=False, inplace=True)
-    log_temp_dict = {
-        event: idx + 1
-        for idx, event in enumerate(list(log_temp["EventId"]))
-    }
-    with open(output_dir + "tbird_log_templates.json", "w") as f:
-        json.dump(log_temp_dict, f)
+    import pickle
+    with open(output_dir + log_file + "_templates.pkl", 'rb') as f:
+        df = pickle.load(f)
+    df.sort_values(by=["Occurrences"], ascending=False, inplace=True)
+    df_dict = {event: idx + 1 for idx, event in enumerate(list(df["EventId"]))}
+    return df_dict
 
 
 if __name__ == "__main__":
@@ -208,7 +207,7 @@ if __name__ == "__main__":
     ##########
     # Parser #
     #########
-    if True:
+    if False:
         parse_log(data_dir, output_dir, log_file, 'drain')
 
     mapping()
@@ -216,9 +215,9 @@ if __name__ == "__main__":
     # Transformation #
 
     ##################
-    df = pd.read_csv(f'{output_dir}{log_file}_structured.csv')
-    with open(output_dir + "tbird_log_templates.json", "r") as f:
-        event_num = json.load(f)
+    with open(f'{output_dir}{log_file}_structured.pkl', 'rb') as f:
+        df = pickle.load(f)
+    event_num = mapping()
     df["EventId"] = df["EventId"].apply(lambda x: event_num.get(x, -1))
 
     # data preprocess
@@ -261,7 +260,7 @@ if __name__ == "__main__":
     train_idx = idx_seq_normal[:train_len]
     test_normal_idx = idx_seq_normal[train_len:]
     # debug - lezhang.thu - end
-    
+
     deeplog_file_generator(
         os.path.join(output_dir, 'train-{}'.format("EventSequence")), train,
         ["EventId"])

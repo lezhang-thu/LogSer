@@ -37,8 +37,10 @@ class ParamTransformer:
         self.labelpath = label_dir
 
     def model_embedding(self):
-        import pickle
-        with open(self.path + self.logName + "_templates.pkl", "rb") as f:
+        with open(
+                os.path.join(self.path,
+                             "{}_templates.pkl".format(self.logName)),
+                "rb") as f:
             template_df = pickle.load(f)
 
         template_data = defaultdict(list)
@@ -60,17 +62,13 @@ class ParamTransformer:
                 template)['input_ids'][0] == self.model.tokenizer.unk_token_id]
                                      ).cpu().numpy()
         # debug - start
-        import pickle
-        with open(os.path.join(self.path, "BGL.log_structured.pkl"),
-                  'rb') as f:
+        with open(
+                os.path.join(self.path,
+                             "{}_structured.pkl".format(self.logName)),
+                "rb") as f:
             structured_df = pickle.load(f)
         structured_df = structured_df[["EventTemplate", "ParameterList"]]
 
-        x = structured_df.apply(lambda row: template_unk[template_2_id[row[
-            "EventTemplate"]]].shape[0],
-                                axis=1) == structured_df.apply(
-                                    lambda row: len(row["ParameterList"]),
-                                    axis=1)
         assert (structured_df.apply(lambda row: template_unk[template_2_id[row[
             "EventTemplate"]]].shape[0],
                                     axis=1) == structured_df.apply(
