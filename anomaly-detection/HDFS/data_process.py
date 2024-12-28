@@ -1,4 +1,5 @@
 import sys
+import pickle
 
 sys.path.append('../')
 
@@ -14,7 +15,8 @@ from logparser import Spell, Drain
 # get [log key, delta time] as input for deeplog
 #input_dir  = os.path.expanduser('~/.dataset/hdfs/')
 #input_dir  = os.path.join('..', '..', '..', 'preprocessed')
-input_dir = os.path.join('..', '..', '..')
+#input_dir = os.path.join('..', '..', '..')
+input_dir = "/home/ubuntu/lezhang.thu/log-anomaly-detection"
 output_dir = '../output/hdfs/'  # The output directory of parsing results
 log_file = "HDFS.log"  # The input log file name
 
@@ -28,7 +30,8 @@ def mapping():
     log_temp = pd.read_csv(log_templates_file)
     log_temp.sort_values(by=["Occurrences"], ascending=False, inplace=True)
     log_temp_dict = {
-        event: idx + 1 for idx, event in enumerate(list(log_temp["EventId"]))
+        event: idx + 1
+        for idx, event in enumerate(list(log_temp["EventId"]))
     }
     print(log_temp_dict)
     with open(output_dir + "hdfs_log_templates.json", "w") as f:
@@ -155,8 +158,10 @@ if __name__ == "__main__":
     # 1. parse HDFS log
     log_format = '<Date> <Time> <Pid> <Level> <Component>: <Content>'  # HDFS log format
     parser(input_dir, output_dir, log_file, log_format, 'drain')
-    #exit(0)
-    # debug - temporary
+
+    df = pd.read_csv(f'{output_dir}{log_file}_structured.csv')
+    with open(os.path.join(output_dir, 'context.pkl'), 'wb') as f:
+        pickle.dump(df['Content'].tolist(), f)
     mapping()
     hdfs_sampling(log_structured_file)
     for x, col in zip([log_sequence_file, idx_log_sequence],

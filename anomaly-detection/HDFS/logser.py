@@ -1,12 +1,13 @@
 import pickle
 import sys
+
 sys.path.append("../")
 sys.path.append("../../")
 
 import os
+
 dirname = os.path.dirname(__file__)
 filename = os.path.join(dirname, '../deeplog')
-
 
 import argparse
 import torch
@@ -21,16 +22,17 @@ options["output_dir"] = "../output/hdfs/"
 options["model_dir"] = options["output_dir"] + "bert/"
 options["increment_model_dir"] = options["output_dir"] + "increment_bert/"
 options["model_path"] = options["model_dir"] + "best_bert.pth"
-options["train_vocab"] = options["output_dir"] + "train"
+options["train_vocab"] = options["output_dir"] + "train-EventSequence"
 options["vocab_path"] = options["output_dir"] + "vocab.pkl"  # pickle file
-options["increment_model_path"] = options["increment_model_dir"] + "best_bert.pth"
+options[
+    "increment_model_path"] = options["increment_model_dir"] + "best_bert.pth"
 
 options["window_size"] = 128
 options["adaptive_window"] = True
 options["seq_len"] = 512
-options["max_len"] = 512 # for position embedding
+options["max_len"] = 512  # for position embedding
 options["min_len"] = 10
-options["mask_ratio"] = 0.7 # train 0.3 test 0.7
+options["mask_ratio"] = 0.3  # train 0.3 test 0.7
 # sample ratio
 options["train_ratio"] = 1
 options["valid_ratio"] = 0.1
@@ -40,17 +42,19 @@ options["test_ratio"] = 1
 options["is_logkey"] = True
 options["is_time"] = False
 options["is_param"] = True
-options["is_increment"] = False # 是否增量
+options["is_increment"] = False  # 是否增量
 options["logname"] = 'HDFS.log'
 
-options["hypersphere_loss"] = True
-options["hypersphere_loss_test"] = True
+#options["hypersphere_loss"] = True
+#options["hypersphere_loss_test"] = True
+options["hypersphere_loss"] = False 
+options["hypersphere_loss_test"] = False 
 
-options["scale"] = None # MinMaxScaler()
+options["scale"] = None  # MinMaxScaler()
 options["scale_path"] = options["model_dir"] + "scale.pkl"
 
 # model
-options["hidden"] = 256 # embedding size
+options["hidden"] = 256  # embedding size
 options["layers"] = 4
 options["attn_heads"] = 4
 
@@ -65,7 +69,7 @@ options["lr"] = 1e-3
 options["adam_beta1"] = 0.9
 options["adam_beta2"] = 0.999
 options["adam_weight_decay"] = 0.00
-options["with_cuda"]= True
+options["with_cuda"] = True
 options["cuda_devices"] = None
 options["log_freq"] = None
 
@@ -110,16 +114,13 @@ if __name__ == "__main__":
 
     elif args.mode == 'predict':
         Predictor(options).predict()
-        
+
     elif args.mode == 'vocab':
         with open(options["train_vocab"], "r", encoding=args.encoding) as f:
             texts = f.readlines()
-        vocab = WordVocab(texts, max_size=args.vocab_size, min_freq=args.min_freq)
+        vocab = WordVocab(texts,
+                          max_size=args.vocab_size,
+                          min_freq=args.min_freq)
         print("VOCAB SIZE:", len(vocab))
         print("save vocab in", options["vocab_path"])
         vocab.save_vocab(options["vocab_path"])
-
-
-
-
-

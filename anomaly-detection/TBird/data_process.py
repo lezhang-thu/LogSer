@@ -6,7 +6,7 @@ import os
 from collections import defaultdict
 import pandas as pd
 import numpy as np
-from logparser import Spell, Drain_BGL
+from logparser import Spell, Drain
 from tqdm import tqdm
 import pickle
 import json
@@ -117,14 +117,14 @@ def parse_log(input_dir, output_dir, log_file, parser_type):
         depth = 3  # Depth of all leaf nodes
 
         # Drain is modified
-        parser = Drain_BGL.LogParser(log_format,
-                                     indir=input_dir,
-                                     outdir=output_dir,
-                                     depth=depth,
-                                     st=st,
-                                     rex=regex,
-                                     keep_para=keep_para,
-                                     maxChild=1000)
+        parser = Drain.LogParser(log_format,
+                                 indir=input_dir,
+                                 outdir=output_dir,
+                                 depth=depth,
+                                 st=st,
+                                 rex=regex,
+                                 keep_para=keep_para,
+                                 maxChild=1000)
         parser.parse(log_file)
 
     elif parser_type == "spell":
@@ -210,13 +210,17 @@ if __name__ == "__main__":
     if False:
         parse_log(data_dir, output_dir, log_file, 'drain')
 
-    mapping()
     ##################
     # Transformation #
 
     ##################
     with open(f'{output_dir}{log_file}_structured.pkl', 'rb') as f:
         df = pickle.load(f)
+    # ** Save text of log ** #
+    with open(os.path.join(output_dir, 'context.pkl'), 'wb') as f:
+        pickle.dump(df['Content'].tolist(), f)
+        exit(0)
+
     event_num = mapping()
     df["EventId"] = df["EventId"].apply(lambda x: event_num.get(x, -1))
 

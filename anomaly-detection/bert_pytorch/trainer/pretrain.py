@@ -1,3 +1,8 @@
+import time
+import numpy as np
+import pandas as pd
+from tqdm import tqdm
+
 import torch
 import torch.nn as nn
 from torch.optim import Adam
@@ -5,9 +10,6 @@ from torch.utils.data import DataLoader
 
 from ..model import BERTLog, BERT
 from .optim_schedule import ScheduledOptim
-import time
-import numpy as np
-import pandas as pd
 
 from sentence_transformers import SentenceTransformer
 
@@ -126,7 +128,7 @@ class BERTTrainer:
         total_hyper_loss = 0.0
 
         total_dist = []
-        for data in data_loader:
+        for data in tqdm(data_loader):
             st_x = []
             for idx_i in range(len(data["bert_input"])):
                 for idx_j in range(len(data["bert_input"][idx_i])):

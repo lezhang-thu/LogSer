@@ -166,7 +166,6 @@ if __name__ == "__main__":
     # ** Save text of log ** #
     with open(os.path.join(output_dir, 'context.pkl'), 'wb') as f:
         pickle.dump(df['Content'].tolist(), f)
-        exit(0)
 
     event_num = mapping()
     df["EventId"] = df["EventId"].apply(lambda x: event_num.get(x, -1))

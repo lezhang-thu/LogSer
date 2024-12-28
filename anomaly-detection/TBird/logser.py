@@ -19,7 +19,7 @@ options['device'] = 'cuda:1' if torch.cuda.is_available() else 'cpu'
 options["output_dir"] = "../output/tbird/"
 options["model_dir"] = options["output_dir"] + "bert/"
 options["increment_model_dir"] = options["output_dir"] + "increment_bert/"
-options["train_vocab"] = options["output_dir"] + "train"
+options["train_vocab"] = options['output_dir'] + "train-EventSequence"
 options["vocab_path"] = options["output_dir"] + "vocab.pkl"
 
 options["model_path"] = options["model_dir"] + "best_bert.pth"
@@ -47,8 +47,10 @@ options["is_param"] = True
 options["is_increment"] = False # 是否增量
 options["logname"] = "Thunderbird_20M.log"
 
-options["hypersphere_loss"] = True
-options["hypersphere_loss_test"] = True
+#options["hypersphere_loss"] = True
+#options["hypersphere_loss_test"] = True
+options["hypersphere_loss"] = False 
+options["hypersphere_loss_test"] = False 
 
 options["scale"] = None # MinMaxScaler()
 options["scale_path"] = options["model_dir"] + "scale.pkl"
@@ -80,6 +82,10 @@ options["gaussian_mean"] = 0
 options["gaussian_std"] = 1
 
 seed_everything(seed=1234)
+
+if not os.path.exists(options['model_dir']):
+    os.makedirs(options['model_dir'], exist_ok=True)
+
 # print("device", options["device"])
 # print("features logkey:{} time: {}\n".format(options["is_logkey"], options["is_time"]))
 # print("mask ratio", options["mask_ratio"])

@@ -48,8 +48,8 @@ options["logname"] = 'BGL.log'
 
 #options["hypersphere_loss"] = True
 #options["hypersphere_loss_test"] = True
-options["hypersphere_loss"] = False 
-options["hypersphere_loss_test"] = False 
+options["hypersphere_loss"] = False
+options["hypersphere_loss_test"] = False
 
 options["scale"] = None  # MinMaxScaler()
 options["scale_path"] = options["model_dir"] + "scale.pkl"
