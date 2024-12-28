@@ -148,8 +148,8 @@ if __name__ == "__main__":
     ##########
     # Parser #
     #########
-
-    parse_log(data_dir, output_dir, log_file, 'drain')
+    if False:
+        parse_log(data_dir, output_dir, log_file, 'drain')
 
     ##################
     # Transformation #
@@ -162,6 +162,11 @@ if __name__ == "__main__":
     import pickle
     with open(f'{output_dir}{log_file}_structured.pkl', 'rb') as f:
         df = pickle.load(f)
+
+    # ** Save text of log ** #
+    with open(os.path.join(output_dir, 'context.pkl'), 'wb') as f:
+        pickle.dump(df['Content'].tolist(), f)
+        exit(0)
 
     event_num = mapping()
     df["EventId"] = df["EventId"].apply(lambda x: event_num.get(x, -1))

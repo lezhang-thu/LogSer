@@ -6,9 +6,10 @@ from torch.utils.data import DataLoader
 from ..model import BERTLog, BERT
 from .optim_schedule import ScheduledOptim
 import time
-import tqdm
 import numpy as np
 import pandas as pd
+
+from sentence_transformers import SentenceTransformer
 
 
 class BERTTrainer:
@@ -48,19 +49,10 @@ class BERTTrainer:
         :param log_freq: logging frequency of the batch iteration
         """
 
-        # Setup cuda device for BERT training, argument -c, --cuda should be true
-        cuda_condition = torch.cuda.is_available() and with_cuda
-        self.device = torch.device("cuda:0" if cuda_condition else "cpu")
-
-        # This BERT model will be saved every epoch
+        self.device = torch.device(
+            "cuda:0" if torch.cuda.is_available() else "cpu")
         self.bert = bert
-        # Initialize the BERT Language Model, with BERT model
         self.model = BERTLog(bert, vocab_size).to(self.device)
-
-        # Distributed GPU training if CUDA can detect more than 1 GPU
-        # if with_cuda and torch.cuda.device_count() > 1:
-        #     print("Using %d GPUS for BERT" % torch.cuda.device_count())
-        #     self.model = nn.DataParallel(self.model, device_ids=cuda_devices)
 
         # Setting the train and valid data loader
         self.train_data = train_dataloader
@@ -74,9 +66,7 @@ class BERTTrainer:
         self.optim_schedule = None
         self.init_optimizer()
 
-        # Using Negative Log Likelihood Loss function for predicting the masked_token
         self.criterion = nn.NLLLoss(ignore_index=0)
-        self.time_criterion = nn.MSELoss()
         self.hyper_criterion = nn.MSELoss()
 
         # deep SVDD hyperparameters
@@ -84,25 +74,19 @@ class BERTTrainer:
         self.radius = 0
         self.hyper_center = None
         self.nu = 0.25
-        # self.objective = "soft-boundary"
-        self.objective = None
-
-        self.log_freq = log_freq
-
         self.log = {
             "train": {
-                key: [] for key in ["epoch", "lr", "time", "loss"]
+                key: []
+                for key in ["epoch", "lr", "time", "loss"]
             },
             "valid": {
-                key: [] for key in ["epoch", "lr", "time", "loss"]
+                key: []
+                for key in ["epoch", "lr", "time", "loss"]
             }
         }
-
-        print("Total Parameters:",
-              sum([p.nelement() for p in self.model.parameters()]))
+        self.st = SentenceTransformer('all-MiniLM-L6-v2')
 
     def init_optimizer(self):
-        # Setting the Adam optimizer with hyper-param
         self.optim = Adam(self.model.parameters(),
                           lr=self.lr,
                           betas=self.betas,
@@ -114,19 +98,20 @@ class BERTTrainer:
     def train(self, epoch):
         return self.iteration(epoch, self.train_data, start_train=True)
 
+    @torch.no_grad()
     def valid(self, epoch):
         return self.iteration(epoch, self.valid_data, start_train=False)
 
     def iteration(self, epoch, data_loader, start_train):
         """
-        loop over the data_loader for training or validing
-        if on train status, backward operation is activated
-        and also auto save the model every peoch
+        loop over the data_loader for training or validating
+        if on train status
+        backward operation is activated and also
+        auto save the model every peoch
 
         :param epoch: current epoch index
         :param data_loader: torch.utils.data.DataLoader for iteration
         :param train: boolean value of is train or valid
-        :return: None
         """
         str_code = "train" if start_train else "valid"
 
@@ -135,19 +120,37 @@ class BERTTrainer:
         self.log[str_code]['lr'].append(lr)
         self.log[str_code]['time'].append(start)
 
-        # Setting the tqdm progress bar
-        totol_length = len(data_loader)
-        # data_iter = tqdm.tqdm(enumerate(data_loader), total=totol_length)
-        data_iter = enumerate(data_loader)
+        total_length = len(data_loader)
         total_loss = 0.0
         total_logkey_loss = 0.0
         total_hyper_loss = 0.0
 
         total_dist = []
-        for i, data in data_iter:
-            data = {key: value.to(self.device) for key, value in data.items()}
+        for data in data_loader:
+            st_x = []
+            for idx_i in range(len(data["bert_input"])):
+                for idx_j in range(len(data["bert_input"][idx_i])):
+                    if (data["bert_input"][idx_i][idx_j] != 0
+                            and data["bert_input"][idx_i][idx_j] != 3):
+                        assert data["context"][idx_i][idx_j] is not None
+                        st_x.append(data["context"][idx_i][idx_j])
+                    else:
+                        assert data["context"][idx_i][idx_j] is None
+            st_x = self.st.encode(
+                sentences=st_x,
+                output_value="sentence_embedding",
+                convert_to_numpy=True,
+            )
+            st_x = torch.nn.functional.adaptive_avg_pool1d(
+                torch.from_numpy(np.asarray(st_x)), 256).numpy()
+            data["context"] = np.zeros((*data["bert_input"].shape, 256),
+                                       dtype=np.float32)
+            mask = (data["bert_input"] != 0) & (data["bert_input"] != 3)
+            data["context"][mask] = st_x
+            data["context"] = torch.from_numpy(data["context"])
 
-            result = self.model(data["bert_input"], data["param_embedding"])
+            data = {key: value.to(self.device) for key, value in data.items()}
+            result = self.model(data["bert_input"], data["context"])
             mask_lm_output = result["logkey_output"]
 
             # 2-2. NLLLoss of predicting masked token word ignore_index = 0 to ignore unmasked tokens
@@ -166,26 +169,14 @@ class BERTTrainer:
                     result["cls_output"].squeeze(),
                     self.hyper_center.expand(data["bert_input"].shape[0], -1))
 
-                # version 2.0 https://github.com/lukasruff/Deep-SVDD-PyTorch/blob/master/src/optim/deepSVDD_trainer.py
+                # version 2.0
+                # https://github.com/lukasruff/Deep-SVDD-PyTorch/blob/master/src/optim/deepSVDD_trainer.py
                 dist = torch.sum((result["cls_output"] - self.hyper_center)**2,
                                  dim=1)
                 total_dist += dist.cpu().tolist()
-
-                # if self.objective == 'soft-boundary':
-                #     scores = dist - self.radius ** 2
-                #     hyper_loss = torch.sqrt(self.radius ** 2 + (1 / self.nu) * torch.mean(torch.max(torch.zeros_like(scores), scores)))
-                # else:
-                #     hyper_loss = torch.sqrt(torch.mean(dist))
-
-                # # add radius and center to training
-                # self.radius = self.get_radius(dist, self.nu)
-                # self.hyper_center = torch.mean(result["cls_output"], dim=0)
-
                 total_hyper_loss += hyper_loss.item()
-
                 # with deepsvdd loss
                 loss = loss + 0.1 * hyper_loss
-
             total_loss += loss.item()
 
             # 3. backward and optimization only in train
@@ -193,16 +184,11 @@ class BERTTrainer:
                 self.optim_schedule.zero_grad()
                 loss.backward()
                 self.optim_schedule.step_and_update_lr()
-
-        avg_loss = total_loss / totol_length
+        avg_loss = total_loss / total_length
         self.log[str_code]['epoch'].append(epoch)
         self.log[str_code]['loss'].append(avg_loss)
-        print("Epoch: {} | phase: {}, loss={}".format(epoch, str_code,
-                                                      avg_loss))
-        print(
-            f"logkey loss: {total_logkey_loss/totol_length}, hyper loss: {total_hyper_loss/totol_length}\n"
-        )
-
+        print("Epoch: {: <5} | Phase: {: <5} | Loss: {:.4f}".format(
+            epoch, str_code, avg_loss))
         return avg_loss, total_dist
 
     def save_log(self, save_dir, surfix_log):
@@ -224,8 +210,7 @@ class BERTTrainer:
         :return: final_output_path
         """
         torch.save(self.model, save_dir)
-        # self.bert.to(self.device)
-        print(" Model Saved on:", save_dir)
+        print("Model saved", save_dir)
         return save_dir
 
     @staticmethod

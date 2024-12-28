@@ -32,6 +32,6 @@ class BERTEmbedding(nn.Module):
                                             max_len=max_len)
         self.dropout = nn.Dropout(p=dropout)
 
-    def forward(self, sequence, param_embedding=None):
-        x = self.position(sequence) + self.token(sequence) + param_embedding
+    def forward(self, sequence, context_embed=None):
+        x = self.position(sequence) + self.token(sequence) + context_embed
         return self.dropout(x)

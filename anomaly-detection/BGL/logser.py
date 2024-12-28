@@ -33,6 +33,7 @@ options["max_len"] = 512  # for position embedding
 options["min_len"] = 10
 
 options["mask_ratio"] = 0.3  # train 0.3 predict 0.7
+#options["mask_ratio"] = 0.7  # train 0.3 predict 0.7
 
 options["train_ratio"] = 1
 options["valid_ratio"] = 0.1
@@ -45,8 +46,10 @@ options["is_param"] = True
 options["is_increment"] = False  # 是否增量
 options["logname"] = 'BGL.log'
 
-options["hypersphere_loss"] = True
-options["hypersphere_loss_test"] = True
+#options["hypersphere_loss"] = True
+#options["hypersphere_loss_test"] = True
+options["hypersphere_loss"] = False 
+options["hypersphere_loss_test"] = False 
 
 options["scale"] = None  # MinMaxScaler()
 options["scale_path"] = options["model_dir"] + "scale.pkl"

@@ -18,8 +18,8 @@ class BERTLog(nn.Module):
         self.mask_lm = MaskedLogModel(self.bert.hidden, vocab_size)
         self.result = {"logkey_output": None, "cls_output": None,}
 
-    def forward(self, x, param_embedding=None):
-        x = self.bert(x, param_embedding=param_embedding)
+    def forward(self, x, context_embed=None):
+        x = self.bert(x, context_embed=context_embed)
 
         self.result["logkey_output"] = self.mask_lm(x)
         self.result["cls_output"] = x[:, 0]

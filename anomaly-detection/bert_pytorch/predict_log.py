@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from bert_pytorch.dataset import WordVocab
 from bert_pytorch.dataset import LogDataset
 from bert_pytorch.dataset.sample import fixed_window
+from sentence_transformers import SentenceTransformer
 
 threshold = 0.01
 #threshold = 1e-4
@@ -78,6 +79,7 @@ class Predictor():
         self.test_ratio = options["test_ratio"]
         self.mask_ratio = options["mask_ratio"]
         self.min_len = options["min_len"]
+        self.st = SentenceTransformer('all-MiniLM-L6-v2')
 
     def detect_logkey_anomaly(self, masked_output, masked_label):
         num_undetected_tokens = 0
@@ -97,8 +99,8 @@ class Predictor():
         log_seqs = []
         idx_seqs = []
         with open(
-                os.path.join(output_dir, '{}-{}'.format(file_name,
-                                                        "EventSequence"))) as f:
+                os.path.join(output_dir,
+                             '{}-{}'.format(file_name, "EventSequence"))) as f:
             with open(
                     os.path.join(output_dir,
                                  '{}-{}'.format(file_name,
@@ -163,7 +165,7 @@ class Predictor():
             logkey_test, log_seq_test = logkey_test[rand_index], log_seq_test[
                 rand_index]
 
-        param_context = self.read_pickle('log_param_context.pkl')
+        param_context = self.read_pickle('context.pkl')
         seq_dataset = LogDataset(
             logkey_test,
             log_seq_test,
@@ -182,9 +184,30 @@ class Predictor():
                                  collate_fn=seq_dataset.collate_fn)
 
         for idx, data in tqdm(enumerate(data_loader)):
+            if True:
+                st_x = []
+                for idx_i in range(len(data["bert_input"])):
+                    for idx_j in range(len(data["bert_input"][idx_i])):
+                        if (data["bert_input"][idx_i][idx_j] != 0
+                                and data["bert_input"][idx_i][idx_j] != 3):
+                            assert data["context"][idx_i][idx_j] is not None
+                            st_x.append(data["context"][idx_i][idx_j])
+                        else:
+                            assert data["context"][idx_i][idx_j] is None
+                st_x = self.st.encode(
+                    sentences=st_x,
+                    output_value="sentence_embedding",
+                    convert_to_numpy=True,
+                )
+                st_x = torch.nn.functional.adaptive_avg_pool1d(
+                    torch.from_numpy(np.asarray(st_x)), 256).numpy()
+                data["context"] = np.zeros((*data["bert_input"].shape, 256),
+                                           dtype=np.float32)
+                mask = (data["bert_input"] != 0) & (data["bert_input"] != 3)
+                data["context"][mask] = st_x
+                data["context"] = torch.from_numpy(data["context"])
             data = {key: value.to(self.device) for key, value in data.items()}
-
-            result = model(data["bert_input"], data["param_embedding"])
+            result = model(data["bert_input"], data["context"])
             mask_lm_output = result["logkey_output"]
 
             # loop though each session in batch
@@ -193,7 +216,8 @@ class Predictor():
                     "num_error": 0,
                     "undetected_tokens": 0,
                     "masked_tokens": 0,
-                    "total_logkey": torch.sum(data["bert_input"][i] > 0).item(),
+                    "total_logkey":
+                    torch.sum(data["bert_input"][i] > 0).item(),
                     "deepSVDD_label": 0
                 }
 
@@ -222,6 +246,7 @@ class Predictor():
 
         return total_results
 
+    @torch.no_grad()
     def predict(self):
         model = torch.load(self.model_path, weights_only=False)
         model.to(self.device)

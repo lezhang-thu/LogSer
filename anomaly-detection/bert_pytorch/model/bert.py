@@ -49,13 +49,13 @@ class BERT(nn.Module):
             for _ in range(n_layers)
         ])
 
-    def forward(self, x, param_embedding=None):
+    def forward(self, x, context_embed=None):
         # attention masking for padded token
         # torch.ByteTensor([batch_size, 1, seq_len, seq_len)
         mask = (x > 0).unsqueeze(1).repeat(1, x.size(1), 1).unsqueeze(1)
 
         # embedding the indexed sequence to sequence of vectors
-        x = self.embedding(x, param_embedding=param_embedding)
+        x = self.embedding(x, context_embed=context_embed)
 
         # running over multiple transformer blocks
         for transformer in self.transformer_blocks:

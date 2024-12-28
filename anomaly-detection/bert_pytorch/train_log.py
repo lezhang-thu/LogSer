@@ -15,6 +15,8 @@ import tqdm
 import gc
 import os
 
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 
 class Trainer():
 
@@ -57,22 +59,18 @@ class Trainer():
         self.mask_ratio = options["mask_ratio"]
         self.min_len = options['min_len']
 
-        print("Save options parameters")
-        save_parameters(options, self.model_dir + "parameters.txt")
-
     def read_pickle(self, param_context_path):
         with open(os.path.join(self.output_path, param_context_path),
                   'rb') as f:
             return pickle.load(f)
 
     def train(self):
-
         print("Loading vocab", self.vocab_path)
         vocab = WordVocab.load_vocab(self.vocab_path)
-        print("vocab Size: ", len(vocab))
+        print("vocab Size:", len(vocab))
 
         # 划分训练集train和验证集valid
-        print("\nLoading Train Dataset")
+        print("Loading train dataset...")
         logkey_train, logkey_valid, log_seq_train, log_seq_valid = generate_train_valid(
             [
                 os.path.join(self.output_path, "train-{}".format(_)) for _ in [
@@ -88,9 +86,7 @@ class Trainer():
             scale_path=self.scale_path,
             seq_len=self.seq_len,
             min_len=self.min_len)
-
-        param_context = self.read_pickle('log_param_context.pkl')
-        # 在该部分对日志序列进行mask处理
+        param_context = self.read_pickle('context.pkl')
         train_dataset = LogDataset(
             logkey_train,
             log_seq_train,
@@ -100,12 +96,7 @@ class Trainer():
             mask_ratio=self.mask_ratio,
             param_context=param_context,
         )
-
-        print("\nLoading valid Dataset")
-        # valid_dataset = generate_train_valid(self.output_path + "train", window_size=self.window_size,
-        #                              adaptive_window=self.adaptive_window,
-        #                              sample_ratio=self.valid_ratio)
-
+        print("Loading validation dataset...")
         valid_dataset = LogDataset(
             logkey_valid,
             log_seq_valid,
@@ -116,27 +107,20 @@ class Trainer():
             param_context=param_context,
         )
 
-        print("Creating Dataloader")
-        self.train_data_loader = DataLoader(train_dataset,
-                                            batch_size=self.batch_size,
-                                            num_workers=self.num_workers,
-                                            collate_fn=train_dataset.collate_fn,
-                                            drop_last=True)
-        self.valid_data_loader = DataLoader(valid_dataset,
-                                            batch_size=self.batch_size,
-                                            num_workers=self.num_workers,
-                                            collate_fn=train_dataset.collate_fn,
-                                            drop_last=True)
-        del train_dataset
-        del valid_dataset
-        del logkey_train
-        del logkey_valid
-        del log_seq_train
-        del log_seq_valid
-        gc.collect()
-
-        # 创建bert模型，并在模型设计好embeading嵌入表示
-        print("Building BERT model")
+        print("Creating dataloader...")
+        self.train_data_loader = DataLoader(
+            train_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            collate_fn=train_dataset.collate_fn,
+            drop_last=True)
+        self.valid_data_loader = DataLoader(
+            valid_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            collate_fn=train_dataset.collate_fn,
+            drop_last=True)
+        print("Building BERT model...")
         bert = BERT(
             len(vocab),
             max_len=self.max_len,
@@ -144,9 +128,7 @@ class Trainer():
             n_layers=self.layers,
             attn_heads=self.attn_heads,
         )
-
-        # 在该部分设计两个预训练任务
-        print("Creating BERT Trainer")
+        print("Creating BERT Trainer...")
         self.trainer = BERTTrainer(bert,
                                    len(vocab),
                                    train_dataloader=self.train_data_loader,
@@ -159,28 +141,20 @@ class Trainer():
                                    log_freq=self.log_freq,
                                    model_path=self.model_path,
                                    hypersphere_loss=self.hypersphere_loss)
-
         self.start_iteration(surfix_log="log2")
-
         self.plot_train_valid_loss("_log2")
 
     def start_iteration(self, surfix_log):
-        print("Training Start")
+        print("Training starts...")
         best_loss = float('inf')
         epochs_no_improve = 0
-        # best_center = None
-        # best_radius = 0
-        # total_dist = None
         for epoch in range(self.epochs):
-            print("\n")
+            print("Epoch: {: <5}".format(epoch))
             start_time = time.time()
             if self.hypersphere_loss:
                 center = self.calculate_center(
                     [self.train_data_loader, self.valid_data_loader])
-                # center = self.calculate_center([self.train_data_loader])
                 self.trainer.hyper_center = center
-
-            # 模型训练
             _, train_dist = self.trainer.train(epoch)
             avg_loss, valid_dist = self.trainer.valid(epoch)
             self.trainer.save_log(self.model_dir, surfix_log)
@@ -188,8 +162,7 @@ class Trainer():
             if self.hypersphere_loss:
                 self.trainer.radius = self.trainer.get_radius(
                     train_dist + valid_dist, self.trainer.nu)
-
-            # save model after 10 warm up epochs
+            # Save model after 10 warm up epochs
             if avg_loss < best_loss:
                 best_loss = avg_loss
                 self.trainer.save(self.model_path)
@@ -202,7 +175,6 @@ class Trainer():
 
                     if best_center is None:
                         raise TypeError("center is None")
-
                     print("best radius", best_radius)
                     best_center_path = self.model_dir + "best_center.pt"
                     print("Save best center", best_center_path)
@@ -210,24 +182,19 @@ class Trainer():
                         "center": best_center,
                         "radius": best_radius
                     }, best_center_path)
-
                     total_dist_path = self.model_dir + "best_total_dist.pt"
-                    print("save total dist: ", total_dist_path)
+                    print("Save total dist:", total_dist_path)
                     torch.save(total_dist, total_dist_path)
             else:
                 epochs_no_improve += 1
-
             end_time = time.time()
-            print("耗时: {:.2f}秒".format(end_time - start_time))
-
+            print("Time {:.2f}s".format(end_time - start_time))
             if epochs_no_improve == self.n_epochs_stop:
                 print("Early stopping")
                 break
 
     def calculate_center(self, data_loader_list):
         print("start calculate center")
-        # model = torch.load(self.model_path)
-        # model.to(self.device)
         with torch.no_grad():
             outputs = 0
             total_samples = 0
@@ -241,15 +208,13 @@ class Trainer():
                         for key, value in data.items()
                     }
 
-                    result = self.trainer.model.forward(data["bert_input"],
-                                                        data["param_embedding"])
+                    result = self.trainer.model.forward(
+                        data["bert_input"], data["param_embedding"])
                     cls_output = result["cls_output"]
 
                     outputs += torch.sum(cls_output.detach().clone(), dim=0)
                     total_samples += cls_output.size(0)
-
         center = outputs / total_samples
-
         return center
 
     def plot_train_valid_loss(self, surfix_log):

@@ -44,77 +44,48 @@ class LogDataset(Dataset):
 
         self.mask_ratio = mask_ratio
         assert type(param_context) is list
-        self.param_context = param_context
-        self.np_pad = np.zeros((256,), dtype=np.float32)
+        self.idx2log = param_context
+        print('self.vocab.pad_index: {}'.format(self.vocab.pad_index))
+        print('self.vocab.sos_index: {}'.format(self.vocab.sos_index))
 
     def __len__(self):
         return self.size
 
     def __getitem__(self, idx):
-
-        k_masked, k_label, param_embedding = self.random_item(
-            self.log_corpus[idx], self.idx_seq_corpus[idx])
-        # debug
-        #print('#' * 20)
-        #print('len(k_masked): {}'.format(len(k_masked)))
-        #print('len(param_embedding): {}'.format(len(param_embedding)))
-        #exit(0)
-
-        # print(len(k))
-        # print(len(k_masked))
-        # print(k)
-        # print(k_masked)
-        # [CLS] tag = SOS tag, [SEP] tag = EOS tag
-        # vocab.pad_index = 0
-        # vocab.unk_index = 1
-        # vocab.sos_index = 3
-        # vocab.mask_index = 4
+        k_masked, k_label, context = self.random_item(self.log_corpus[idx],
+                                                      self.idx_seq_corpus[idx])
         k = [self.vocab.sos_index] + k_masked
         k_label = [self.vocab.pad_index] + k_label
-        # k_label = [self.vocab.sos_index] + k_label
+        context = [None] + context
 
-        return k, k_label, param_embedding
+        return k, k_label, context
 
     def random_item(self, k, t):
         tokens = list(k)
         output_label = []
-        idx_seq_intervals = list(t)
+        idx_seq = list(t)
 
-        param_embedding = [self.np_pad]
+        ## logs' embeddings (logs in idx_seq)
+        #x = self.st.encode(
+        #    sentences=[self.idx2log[int(_)] for _ in idx_seq],
+        #    output_value="sentence_embedding",
+        #    convert_to_numpy=True,
+        #)
+        #log_seq_embed = torch.nn.functional.adaptive_avg_pool1d(
+        #    torch.from_numpy(np.asarray(x)), 256).numpy()
+
         for k_idx, token in enumerate(tokens):
-            t = self.param_context[int(idx_seq_intervals[k_idx])]
-
-            prob = random.random()
-            # replace 15% of tokens in a sequence to a masked token
-            if prob < self.mask_ratio:
-                t = self.np_pad
-                if self.predict_mode:
-                    tokens[k_idx] = self.vocab.mask_index
-                    output_label.append(
-                        self.vocab.stoi.get(token, self.vocab.unk_index))
-                else:
-                    prob /= self.mask_ratio
-                    # 80% randomly change token to mask token
-                    if prob < 0.8:
-                        tokens[k_idx] = self.vocab.mask_index
-                    # 10% randomly change token to random token
-                    elif prob < 0.9:
-                        tokens[k_idx] = random.randrange(len(self.vocab))
-                    # 10% randomly change token to current token
-                    else:
-                        tokens[k_idx] = self.vocab.stoi.get(
-                            token, self.vocab.unk_index)
-                    output_label.append(
-                        self.vocab.stoi.get(token, self.vocab.unk_index))
-
+            if random.random() < self.mask_ratio:
+                tokens[k_idx] = self.vocab.mask_index
+                output_label.append(
+                    self.vocab.stoi.get(token, self.vocab.unk_index))
             else:
-                tokens[k_idx] = self.vocab.stoi.get(token, self.vocab.unk_index)
+                tokens[k_idx] = self.vocab.stoi.get(token,
+                                                    self.vocab.unk_index)
                 output_label.append(self.vocab.pad_index)
-            param_embedding.append(self.np_pad if t is None else t)
+        context = [self.idx2log[int(_)] for _ in idx_seq]
+        return tokens, output_label, context
 
-        return tokens, output_label, param_embedding
-
-    # 规整函数，将不同长度的日志序列进行规整
     def collate_fn(self, batch, percentile=100, dynamical_pad=True):
         lens = [len(seq[0]) for seq in batch]
 
@@ -129,27 +100,24 @@ class LogDataset(Dataset):
             seq_len = self.seq_len
 
         output = defaultdict(list)
-        output["param_embedding"] = []
+        output["context"] = []
         for seq in batch:
             bert_input = seq[0][:seq_len]
             bert_label = seq[1][:seq_len]
-            param_embedding = seq[2][:seq_len]
+            context = seq[2][:seq_len]
 
             padding = [
                 self.vocab.pad_index for _ in range(seq_len - len(bert_input))
             ]
             bert_input.extend(padding), bert_label.extend(padding)
-            x = len(param_embedding)
+            x = len(context)
             for _ in range(seq_len - x):
-                param_embedding.append(self.np_pad)
+                context.append(None)
 
             output["bert_input"].append(bert_input)
             output["bert_label"].append(bert_label)
-            output["param_embedding"].append(np.stack(param_embedding, 0))
+            output["context"].append(context)
 
         output["bert_input"] = torch.tensor(output["bert_input"]).long()
         output["bert_label"] = torch.tensor(output["bert_label"]).long()
-        output["param_embedding"] = torch.from_numpy(
-            np.stack(output["param_embedding"], 0)).float()
-
         return output
