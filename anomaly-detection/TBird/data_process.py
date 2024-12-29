@@ -147,36 +147,28 @@ def sample_raw_data(data_file, output_file, sample_window_size,
     labels = []
     idx = 0
 
-    # spirit dataset can start from the 2Mth line, as there are many abnormal lines gathering in the first 2M
+    # can start from the 2Mth line, as there are many abnormal lines gathering in the first 2M
     with open(data_file, 'r', errors='ignore') as f:
         for line in f:
             labels.append(line.split()[0] != '-')
             sample_data.append(line)
-
             if len(labels) == sample_window_size:
                 abnormal_rate = sum(np.array(labels)) / len(labels)
                 print(f"{idx + 1} lines, abnormal rate {abnormal_rate}")
                 break
-
             idx += 1
             if idx % sample_step_size == 0:
                 print("Process {:>6.2f}% raw data".format(
                     idx / sample_window_size * 100),
                       end='\r')
-
     with open(output_file, "w") as f:
         f.writelines(sample_data)
-
     print("Sampling done")
-
-
-log_structured_file = output_dir + log_file + "_structured.csv"
-log_templates_file = output_dir + log_file + "_templates.csv"
 
 
 def mapping():
     import pickle
-    with open(output_dir + log_file + "_templates.pkl", 'rb') as f:
+    with open(output_dir + log_file + "_templates.csv", 'rb') as f:
         df = pickle.load(f)
     df.sort_values(by=["Occurrences"], ascending=False, inplace=True)
     df_dict = {event: idx + 1 for idx, event in enumerate(list(df["EventId"]))}
@@ -214,19 +206,15 @@ if __name__ == "__main__":
     # Transformation #
 
     ##################
-    with open(f'{output_dir}{log_file}_structured.pkl', 'rb') as f:
-        df = pickle.load(f)
+    df = pd.read_csv(f'{output_dir}{log_file}_structured.csv')
     # ** Save text of log ** #
     with open(os.path.join(output_dir, 'context.pkl'), 'wb') as f:
         pickle.dump(df['Content'].tolist(), f)
-        exit(0)
-
     event_num = mapping()
     df["EventId"] = df["EventId"].apply(lambda x: event_num.get(x, -1))
 
     # data preprocess
     df["Label"] = df["Label"].apply(lambda x: int(x != "-"))
-
     df['datetime'] = pd.to_datetime(df["Date"] + " " + df['Time'],
                                     format='%Y.%m.%d %H:%M:%S')
     df['timestamp'] = df["datetime"].values.astype(np.int64) // 10**9

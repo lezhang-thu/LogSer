@@ -1,13 +1,15 @@
-# LogSer
-
-Log Sequence Anomaly Detection based on Template and Parameter Parsing via BERT
+# LogBERT
 
 ## Runnable version
 
 1. Download HDFS_v1 from [https://zenodo.org/records/8196385/files/HDFS_v1.zip?download=1](https://zenodo.org/records/8196385/files/HDFS_v1.zip?download=1)
-
-1. Extract it in **the same level** of directory as LogSer (i.e., put it in the same level as LogSer, then run `unzip -q HDFS_v1.zip`)
-
-1. We use the default log parser as [LogBert](https://github.com/HelenGuohx/logbert/blob/main/HDFS/data_process.py#L119), i.e., 'drain'. We uncomment `parser(input_dir, output_dir, log_file, log_format, 'drain')` in `anomaly-detection/HDFS/data_process.py` to achieve it.
-
-The current version NOT supports LogSer's parser, but uses `Drain` instead.
+2. Run `unzip -q HDFS_v1.zip`
+3. Run the following scripts
+```[bash]
+cd anomaly-detection/HDFS
+python data_process /path/to/HDFS-dataset
+python logser.py vocab
+python logser.py train
+python logser.py predict
+```
+4. We use the default log parser as [LogBert](https://github.com/HelenGuohx/logbert/blob/main/HDFS/data_process.py#L119), i.e., 'drain'.
