@@ -1,11 +1,6 @@
 import sys
+
 sys.path.append("../")
-sys.path.append("../../")
-
-import os
-dirname = os.path.dirname(__file__)
-filename = os.path.join(dirname, '../deeplog')
-
 
 import argparse
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
@@ -15,7 +10,7 @@ from bert_pytorch import Predictor, Trainer
 from logdeep.tools.utils import *
 
 options = dict()
-options['device'] = 'cuda:1' if torch.cuda.is_available() else 'cpu'
+options['device'] = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 options["output_dir"] = "../output/tbird/"
 options["model_dir"] = options["output_dir"] + "bert/"
 options["increment_model_dir"] = options["output_dir"] + "increment_bert/"
@@ -23,40 +18,37 @@ options["train_vocab"] = options['output_dir'] + "train-EventSequence"
 options["vocab_path"] = options["output_dir"] + "vocab.pkl"
 
 options["model_path"] = options["model_dir"] + "best_bert.pth"
-options["increment_model_path"] = options["output_dir"] + "increment_bert/" + "best_bert.pth"
+options["increment_model_path"] = options[
+    "output_dir"] + "increment_bert/" + "best_bert.pth"
 
 options["window_size"] = 128
 options["adaptive_window"] = True
 options["seq_len"] = 512
-options["max_len"] = 512 # for position embedding
+options["max_len"] = 512  # for position embedding
 options["min_len"] = 10
 
-options["mask_ratio"] = 0.5 # train 0.5 predict 0.5
-
-options["vocab_size"] = 844 
+options["mask_ratio"] = 0.5  # train 0.5 predict 0.5
+options["vocab_size"] = 844
 
 options["train_ratio"] = 1
 options["valid_ratio"] = 0.1
 options["test_ratio"] = 0.1
 
-
 # features
 options["is_logkey"] = True
 options["is_time"] = False
 options["is_param"] = True
-options["is_increment"] = False # 是否增量
+options["is_increment"] = False  # 是否增量
 options["logname"] = "Thunderbird_20M.log"
 
-#options["hypersphere_loss"] = True
-#options["hypersphere_loss_test"] = True
-options["hypersphere_loss"] = False 
-options["hypersphere_loss_test"] = False 
+options["hypersphere_loss"] = False
+options["hypersphere_loss_test"] = False
 
-options["scale"] = None # MinMaxScaler()
+options["scale"] = None  # MinMaxScaler()
 options["scale_path"] = options["model_dir"] + "scale.pkl"
 
 # model
-options["hidden"] = 256 # embedding size
+options["hidden"] = 256  # embedding size
 options["layers"] = 4
 options["attn_heads"] = 4
 
@@ -71,8 +63,7 @@ options["lr"] = 1e-3
 options["adam_beta1"] = 0.9
 options["adam_beta2"] = 0.999
 options["adam_weight_decay"] = 0.00
-options["with_cuda"]= True
-# options["cuda_devices"] = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+options["with_cuda"] = True
 options["cuda_devices"] = None
 options["log_freq"] = None
 
@@ -85,11 +76,6 @@ seed_everything(seed=1234)
 
 if not os.path.exists(options['model_dir']):
     os.makedirs(options['model_dir'], exist_ok=True)
-
-# print("device", options["device"])
-# print("features logkey:{} time: {}\n".format(options["is_logkey"], options["is_time"]))
-# print("mask ratio", options["mask_ratio"])
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -117,17 +103,15 @@ if __name__ == "__main__":
         Trainer(options).train()
 
     elif args.mode == 'predict':
+        options["threshold"] = 0.01
         Predictor(options).predict()
 
     elif args.mode == 'vocab':
         with open(options["train_vocab"], "r") as f:
             texts = f.readlines()
-        vocab = WordVocab(texts, max_size=args.vocab_size, min_freq=args.min_freq)
+        vocab = WordVocab(texts,
+                          max_size=args.vocab_size,
+                          min_freq=args.min_freq)
         print("VOCAB SIZE:", len(vocab))
         print("save vocab in", options["vocab_path"])
         vocab.save_vocab(options["vocab_path"])
-
-
-
-
-

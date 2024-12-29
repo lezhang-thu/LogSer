@@ -14,7 +14,9 @@ import json
 tqdm.pandas()
 pd.options.mode.chained_assignment = None  # default='warn'
 
-data_dir = os.path.join('..', '..', '..', 'tbird')
+data_dir = sys.argv[1]
+print('#' * 20)
+print('dataset path {}'.format(data_dir))
 output_dir = "../output/tbird/"
 log_file = "Thunderbird_20M.log"
 
@@ -199,16 +201,14 @@ if __name__ == "__main__":
     #########
     # sample raw data
     #########
-    if False:
-        sample_raw_data(os.path.join(data_dir, raw_log_file),
-                        os.path.join(data_dir, sample_log_file),
-                        sample_window_size, sample_step_size)
+    sample_raw_data(os.path.join(data_dir, raw_log_file),
+                    os.path.join(data_dir, sample_log_file),
+                    sample_window_size, sample_step_size)
 
     ##########
     # Parser #
     #########
-    if False:
-        parse_log(data_dir, output_dir, log_file, 'drain')
+    parse_log(data_dir, output_dir, log_file, 'drain')
 
     ##################
     # Transformation #

@@ -1,11 +1,6 @@
 import sys
 
 sys.path.append("../")
-# sys.path.append("../../")
-#
-# import os
-# dirname = os.path.dirname(__file__)
-# filename = os.path.join(dirname, '../deeplog')
 
 import argparse
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
@@ -31,9 +26,6 @@ options["adaptive_window"] = True
 options["seq_len"] = 512
 options["max_len"] = 512  # for position embedding
 options["min_len"] = 10
-
-options["mask_ratio"] = 0.3  # train 0.3 predict 0.7
-#options["mask_ratio"] = 0.7  # train 0.3 predict 0.7
 
 options["train_ratio"] = 1
 options["valid_ratio"] = 0.1
@@ -84,10 +76,6 @@ seed_everything(seed=1234)
 if not os.path.exists(options['model_dir']):
     os.makedirs(options['model_dir'], exist_ok=True)
 
-# print("device", options["device"])
-# print("features logkey:{} time: {}".format(options["is_logkey"], options["is_time"]))
-# print("mask ratio", options["mask_ratio"])
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers()
@@ -109,13 +97,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print("arguments", args)
     print("options", options)
-    # Trainer(options).train()
-    # Predictor(options).predict()
 
     if args.mode == 'train':
+        options["mask_ratio"] = 0.3
         Trainer(options).train()
 
     elif args.mode == 'predict':
+        options["mask_ratio"] = 0.7
+        options["threshold"] = 0.01
         Predictor(options).predict()
 
     elif args.mode == 'vocab':

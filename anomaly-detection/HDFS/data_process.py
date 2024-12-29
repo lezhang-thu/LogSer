@@ -12,11 +12,10 @@ from tqdm import tqdm
 import numpy as np
 from logparser import Spell, Drain
 
-# get [log key, delta time] as input for deeplog
-#input_dir  = os.path.expanduser('~/.dataset/hdfs/')
-#input_dir  = os.path.join('..', '..', '..', 'preprocessed')
-#input_dir = os.path.join('..', '..', '..')
-input_dir = "/home/ubuntu/lezhang.thu/log-anomaly-detection"
+data_dir = sys.argv[1]
+print('#' * 20)
+print('dataset path {}'.format(data_dir))
+input_dir = data_dir
 output_dir = '../output/hdfs/'  # The output directory of parsing results
 log_file = "HDFS.log"  # The input log file name
 

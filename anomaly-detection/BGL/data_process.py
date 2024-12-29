@@ -16,7 +16,9 @@ from sklearn.model_selection import train_test_split
 tqdm.pandas()
 pd.options.mode.chained_assignment = None
 
-data_dir = os.path.join('..', '..', '..', 'BGL')
+data_dir = sys.argv[1]
+print('#' * 20)
+print('dataset path {}'.format(data_dir))
 output_dir = "../output/bgl/"
 log_file = "BGL.log"
 
@@ -148,8 +150,7 @@ if __name__ == "__main__":
     ##########
     # Parser #
     #########
-    if False:
-        parse_log(data_dir, output_dir, log_file, 'drain')
+    parse_log(data_dir, output_dir, log_file, 'drain')
 
     ##################
     # Transformation #

@@ -2,12 +2,6 @@ import pickle
 import sys
 
 sys.path.append("../")
-sys.path.append("../../")
-
-import os
-
-dirname = os.path.dirname(__file__)
-filename = os.path.join(dirname, '../deeplog')
 
 import argparse
 import torch
@@ -32,7 +26,6 @@ options["adaptive_window"] = True
 options["seq_len"] = 512
 options["max_len"] = 512  # for position embedding
 options["min_len"] = 10
-options["mask_ratio"] = 0.3  # train 0.3 test 0.7
 # sample ratio
 options["train_ratio"] = 1
 options["valid_ratio"] = 0.1
@@ -47,8 +40,8 @@ options["logname"] = 'HDFS.log'
 
 #options["hypersphere_loss"] = True
 #options["hypersphere_loss_test"] = True
-options["hypersphere_loss"] = False 
-options["hypersphere_loss_test"] = False 
+options["hypersphere_loss"] = False
+options["hypersphere_loss_test"] = False
 
 options["scale"] = None  # MinMaxScaler()
 options["scale_path"] = options["model_dir"] + "scale.pkl"
@@ -74,7 +67,8 @@ options["cuda_devices"] = None
 options["log_freq"] = None
 
 # predict
-options["num_candidates"] = 4
+#options["num_candidates"] = 4
+options["num_candidates"] = 1
 options["gaussian_mean"] = 0
 options["gaussian_std"] = 1
 
@@ -82,10 +76,6 @@ seed_everything(seed=1234)
 
 if not os.path.exists(options['model_dir']):
     os.makedirs(options['model_dir'], exist_ok=True)
-
-# print("device", options["device"])
-# print("features logkey:{} time: {}\n".format(options["is_logkey"], options["is_time"]))
-# print("mask ratio", options["mask_ratio"])
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -110,9 +100,12 @@ if __name__ == "__main__":
     print("options", options)
 
     if args.mode == 'train':
+        options["mask_ratio"] = 0.3
         Trainer(options).train()
 
     elif args.mode == 'predict':
+        options["mask_ratio"] = 0.85
+        options["threshold"] = 0
         Predictor(options).predict()
 
     elif args.mode == 'vocab':

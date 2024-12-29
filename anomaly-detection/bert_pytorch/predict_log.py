@@ -11,9 +11,6 @@ from bert_pytorch.dataset import LogDataset
 from bert_pytorch.dataset.sample import fixed_window
 from sentence_transformers import SentenceTransformer
 
-threshold = 0.01
-#threshold = 1e-4
-
 
 def compute_anomaly(results, params, seq_threshold=0.5):
     is_logkey = params["is_logkey"]
@@ -37,6 +34,7 @@ def find_best_threshold(
     test_normal_results,
     test_abnormal_results,
     params,
+    threshold=None,
 ):
     FP = compute_anomaly(test_normal_results, params, threshold)
     TP = compute_anomaly(test_abnormal_results, params, threshold)
@@ -79,6 +77,7 @@ class Predictor():
         self.test_ratio = options["test_ratio"]
         self.mask_ratio = options["mask_ratio"]
         self.min_len = options["min_len"]
+        self.threshold = options["threshold"]
         self.st = SentenceTransformer('all-MiniLM-L6-v2')
 
     def detect_logkey_anomaly(self, masked_output, masked_label):
@@ -105,7 +104,7 @@ class Predictor():
                     os.path.join(output_dir,
                                  '{}-{}'.format(file_name,
                                                 'LogSequence'))) as g:
-                for idx, t in tqdm(enumerate(zip(f.readlines(),
+                for idx, t in enumerate(tqdm(zip(f.readlines(),
                                                  g.readlines()))):
                     log_seq, idx_seq = fixed_window(
                         t,
@@ -183,7 +182,7 @@ class Predictor():
                                  num_workers=self.num_workers,
                                  collate_fn=seq_dataset.collate_fn)
 
-        for idx, data in tqdm(enumerate(data_loader)):
+        for idx, data in enumerate(tqdm(data_loader)):
             if True:
                 st_x = []
                 for idx_i in range(len(data["bert_input"])):
@@ -286,6 +285,7 @@ class Predictor():
             #None,
             #results[0],
             params=params,
+            threshold=self.threshold,
         )
 
         print("TP: {}, TN: {}, FP: {}, FN: {}".format(TP, TN, FP, FN))
